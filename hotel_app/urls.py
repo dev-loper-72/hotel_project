@@ -39,6 +39,5 @@ urlpatterns = [
     path('api/room/', views.RoomListCreate.as_view(), name="api_room_list_create"),
     path('api/room/<int:pk>', views.RoomRetrieveUpdateDestroy.as_view(), name="api_room_update_destroy"),
     path('api/room-type/', views.RoomTypeListCreate.as_view(), name="api_room_type_list_create"),
-    path('api/room-type/<str:pk>', views.RoomTypeRetrieveUpdateDestroy.as_view(), name="api_room_type_update_destroy"),
-
+    path('api/room-type/<str:pk>', views.RoomTypeRetrieveUpdateDestroy.as_view(), name="api_room_type_update_destroy"),  
 ]
