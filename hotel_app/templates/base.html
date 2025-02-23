@@ -15,20 +15,12 @@
     <title> {% block title %} Hotel Management App {% endblock %} </title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <!-- Workaround for problems reading a stylesheet when hosted by render.com -->
+    {% include "stylesheet_include.html" %}
 </head>
 <body>
-    <style>
-    .navbar {
-        background-color: #343a40;
-    }
-    
-    .navbar-brand, .nav-link {
-        color: #fff !important;
-        font-size: 15px;
-    }
-    </style>
-    
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">  <!-- Create a fixed-top navbar with Bootstrap classes -->
         <a class="navbar-brand" href="{% url 'home' %}">Hotel Management</a>  <!-- Link the brand name to the home page using Django's URL tag -->
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="true" aria-label="Toggle navigation">
