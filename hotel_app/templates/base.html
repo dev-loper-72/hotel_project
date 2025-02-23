@@ -14,10 +14,21 @@
     <!-- Block giving the web page a title -->
     <title> {% block title %} Hotel Management App {% endblock %} </title>
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
+    <style>
+    .navbar {
+        background-color: #343a40;
+    }
+    
+    .navbar-brand, .nav-link {
+        color: #fff !important;
+        font-size: 15px;
+    }
+    </style>
+    
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">  <!-- Create a fixed-top navbar with Bootstrap classes -->
         <a class="navbar-brand" href="{% url 'home' %}">Hotel Management</a>  <!-- Link the brand name to the home page using Django's URL tag -->
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="true" aria-label="Toggle navigation">
@@ -59,11 +70,7 @@
     <div class="container">
         {% block footer %}{% endblock  %}
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx" crossorigin="anonymous"></script>    
-    <!--
     <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
-    -->
 </body>
 </html>
