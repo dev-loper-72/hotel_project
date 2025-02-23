@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 # Define list of url patterns
 urlpatterns = [
@@ -41,3 +43,5 @@ urlpatterns = [
     path('api/room-type/', views.RoomTypeListCreate.as_view(), name="api_room_type_list_create"),
     path('api/room-type/<str:pk>', views.RoomTypeRetrieveUpdateDestroy.as_view(), name="api_room_type_update_destroy"),  
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
