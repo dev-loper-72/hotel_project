@@ -21,7 +21,7 @@ class Guest(models.Model):
 
      # string representation of the Guest
     def __str__(self):
-        return (f"ID:{self.guest_id}: Full name:{self.title + " " + self.first_name + " " + self.last_name}") 
+        return (f"ID:{self.guest_id}: Full name:{self.title} {self.first_name} {self.last_name}") 
     
     # shorter guest name built from the title + first_initial + last_name
     @property
