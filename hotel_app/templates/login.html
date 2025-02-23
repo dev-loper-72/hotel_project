@@ -1,0 +1,21 @@
+<!-- Extend the base layout from the base.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-6 mb-4">Welcome to the Hotel Management System</h1>
+    <p class="lead mb-4">
+        Please Login to view categories
+    </p>
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form  %}
+            <div class="form-group row">
+                   <label for="{{ field.id_for_label }}" class="col-md-2 col-form-label text-left">{{ field.label }}</label>
+                    <div class="col-md-9">{{ field }}</div>
+            </div>
+        {% endfor %}
+        <button type="submit" class="mt-4">Login</button>
+    </form>
+</div>
+{% endblock %}

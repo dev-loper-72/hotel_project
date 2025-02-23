@@ -1,0 +1,22 @@
+<!-- Extend the base layout for guest lists -->
+{% extends "guest_list_base.html" %}
+
+{% block title %} Guests {% endblock %}
+
+{% block heading %}
+Guests
+{% endblock %}
+
+{% block actions %}
+<div class="button-group">
+    <a href="{% url 'guest_update' guest.guest_id %}" class="btn btn-warning btn-sm" >Edit</a>
+    <a href="{% url 'guest_delete' guest.guest_id %}" class="btn btn-danger btn-sm" >Delete</a>
+</div>
+{% endblock %}
+
+{% block footer %}
+<div class="button-group">
+    <a href="{% url 'guest_create' %}?mode=list" class="btn btn-secondary btn-sm">Register New Guest</a>
+    <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">Home</a>
+</div>
+{% endblock %}

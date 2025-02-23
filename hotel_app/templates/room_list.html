@@ -1,0 +1,39 @@
+<!-- Extend the base layout from the base.html -->
+{% extends "base.html" %}
+
+{% block title %} Rooms {% endblock %}
+
+{% block content %}
+    <h2 class="text-center mb-3">Rooms</h2>
+    <table class="table table-bordered table-striped ">
+        <thead class="thead-dark">
+            <tr>
+                <th>Room Number</th>
+                <th>Room Type</th>
+                <th>Room Type Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rooms %}
+            <tr>
+                <td>{{ r.room_number }} </td>
+                <td>{{ r.room_type.room_type_code }} </td>
+                <td>{{ r.room_type.room_type_name }} </td>
+                <td> 
+                    <div class="button-group">
+                        <a href="{% url 'room_update' r.room_number %}" class="btn btn-warning btn-sm" >Edit</a>
+                        <a href="{% url 'room_delete' r.room_number %}" class="btn btn-danger btn-sm" >Delete</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block footer %}
+<div class="button-group">
+    <a href="{% url 'room_create' %}" class="btn btn-secondary btn-sm">Add New Room</a>
+    <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">Home</a>
+</div>
+{% endblock %}

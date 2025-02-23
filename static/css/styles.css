@@ -1,0 +1,50 @@
+body {
+    padding-top: 56px;
+    font-size: 14px;
+}
+
+.navbar {
+    background-color: #343a40;
+}
+
+.navbar-brand, .nav-link {
+    color: #fff !important;
+    font-size: 15px;
+}
+
+.container {
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+    font-size: 13px;
+}
+
+.confirm-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.confirm-prompt {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.confirm-context {
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.form-group {
+    display: flex;
+    align-items: center; /* Vertically align label and field */
+    margin-bottom: 5px; /* Optional: adjust the spacing between rows */
+}
+
+/* use with a group of buttons to place a small gap in between */
+.button-group a, button {
+    margin-right: 10px;
+}

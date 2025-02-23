@@ -1,0 +1,79 @@
+<!-- Extend the base layout from the base.html -->
+{% extends "base.html" %}
+
+{% block title %} Reservation List View {% endblock %}
+
+{% block content %}
+    <h2 class="text-center">Reservations</h2>
+
+    <hr> <!-- Horizontal line above the filter -->
+
+    <div class="row align-items-center">
+        <div class="col-auto text-center" style="font-size: 13px; vertical-align: middle;">
+            <h6 class="fw-bold mb-0">Filter by:</h6>
+        </div>
+        <div class="col">
+            <form method="get" class="row g-3">
+                {% for field in filter.form %}
+                <div class="col-md-auto d-flex align-items-center mt-1 mb-1">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-bold" style="font-size: 13px; margin-right: 10px; margin-bottom: 0; vertical-align: middle;">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <hr> <!-- Horizontal line below the filter -->
+
+    <table class="table table-bordered table-striped ">
+        <thead class="thead-dark">
+            <tr>
+                <th>Reservation ID</th>
+                <th>First night</th>
+                <th>Nights reserved</th>
+                <th>Guest</th>
+                <th>Room</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reservation in filter.qs %}
+            <tr>
+                <td>{{ reservation.reservation_id }} </td>
+                <td>{{ reservation.start_of_stay }} </td>
+                <td>{{ reservation.length_of_stay }} </td>
+                <td>{{ reservation.guest.display_name }} </td>
+                <td>{{ reservation.room_number }} </td>
+                <td>{{ reservation.get_status_code_display }} </td>
+                <td> 
+                    <div class="button-group">
+                        <a href="{% url 'reservation_update' reservation.reservation_id %}" class="btn btn-warning btn-sm" >Edit</a>
+                        <a href="{% url 'reservation_update' reservation.reservation_id %}?status_code=IN" class="btn btn-primary btn-sm" >Check-in</a>
+                        <a href="{% url 'reservation_update' reservation.reservation_id %}?status_code=OT" class="btn btn-primary btn-sm" >Check-out</a>
+                        <a href="{% url 'reservation_delete' reservation.reservation_id %}" class="btn btn-danger btn-sm" >Delete</a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="alert alert-warning text-center" role="alert">
+                            No reservations found
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block footer %}
+<div class="button-group">
+    <a href="{% url 'available_rooms_list' %}" class="btn btn-secondary btn-sm">Find Available Rooms</a>
+    <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">Home</a>
+</div>
+{% endblock %}

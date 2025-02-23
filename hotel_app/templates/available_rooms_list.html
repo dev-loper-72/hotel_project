@@ -1,0 +1,77 @@
+<!-- Extend the base layout from the base.html -->
+{% extends "base.html" %}
+
+{% block title %} Available Rooms {% endblock %}
+
+{% block content %}
+    <h2 class="text-center">Available Rooms</h2>
+
+    <hr> <!-- Horizontal line above the filter -->
+
+    <div class="row align-items-center">
+        <div class="col-auto text-center" style="font-size: 13px; vertical-align: middle;">
+            <h6 class="fw-bold mb-0">Search criteria:</h6>
+        </div>
+        <div class="col">
+            <form method="get" class="row g-3">
+                {% for field in filter.form %}
+                <div class="col-md-auto d-flex align-items-center mt-1 mb-1">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-bold" style="font-size: 13px; margin-right: 10px; margin-bottom: 0; vertical-align: middle;">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+                {% endfor %}
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <hr> <!-- Horizontal line below the filter -->
+
+    <table class="table table-bordered table-striped ">
+        <thead class="thead-dark">
+            <tr>
+                <th>Room number</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Deluxe</th>
+                <th>Bath</th>
+                <th>Sep.Shower</th>
+                <th>Max Guests</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for room in filter.qs %}
+            <tr>
+                <td>{{ room.room_number }} </td>
+                <td>{{ room.room_type.room_type_name }} </td>
+                <td>{{ room.room_type.price }} </td>
+                <td>{{ room.room_type.deluxe }} </td>
+                <td>{{ room.room_type.bath }} </td>
+                <td>{{ room.room_type.separate_shower }} </td>
+                <td>{{ room.room_type.maximum_guests }} </td>
+                <td> 
+                    <div class="button-group">
+                        <a href="{% url 'available_rooms_reserve' room.room_number %}?start_date={{ filter.form.start_date.value }}&length_of_stay={{ filter.form.length_of_stay.value }}" class="btn btn-primary btn-sm" >Reserve</a>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8">
+                        <div class="alert alert-warning text-center" role="alert">
+                            No rooms are available
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block footer %}
+<div class="button-group">
+    <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">Home</a>
+</div>
+{% endblock %}

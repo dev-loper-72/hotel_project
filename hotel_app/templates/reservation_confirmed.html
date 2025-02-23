@@ -1,0 +1,15 @@
+<!-- Extend the base layout from the base.html -->
+{% extends "base.html" %}
+
+{% block title %} Reservation Confirmed {% endblock title %}
+
+{% block content %}
+  <h2 class="confirm-header">Room Reserved</h2>
+  <p class="confirm-context">Room {{ reservation.room_number }} has now been reserved on {{ reservation.start_of_stay|date:"d/m/Y" }} for {{ reservation.length_of_stay }} nights for {{ reservation.guest.display_name }}</p>
+  <form  method="post" class="text-center">
+    {% csrf_token %}
+    <div class="button-group">
+      <a href="{% url 'reservation_list' %}" class="btn btn-primary btn-sm" role="button">View Reservations</a>
+    </div>
+  </form>    
+{% endblock content %}

@@ -1,0 +1,40 @@
+<!-- Extend the base layout from the base.html -->
+{% extends "base.html" %}
+
+<!-- Load custom filters (to modify html display based on user's group) -->
+{% load custom_filters %}
+
+{% block title %} Home {% endblock %}
+
+{% block content %}
+  <div class="jumbotron text-center">
+    <h1 class="display-5 mb-5">Hello {{ request.user.first_name }}</h1>
+    <h1 class="display-5">Welcome to the Hotel Management System</h1>
+    <p class="lead mt-4">
+        Please choose a category.
+    </p>
+    <hr class="my-4">
+
+    <!-- Use a grid of buttons to access main features -->
+    <div class="row">
+        <div class="col-12 col-md-4 mb-3">
+            <a href="{% url 'guest_list' %}" class="btn btn-primary btn-block" role="button">Guests</a>
+        </div>
+        <div class="col-12 col-md-4 mb-3">
+            <a href="{% url 'available_rooms_list' %}" class="btn btn-primary btn-block" role="button">Find Available Rooms</a>
+        </div>
+        <div class="col-12 col-md-4 mb-3">
+            <a href="{% url 'reservation_list' %}" class="btn btn-primary btn-block" role="button">Reservations</a>
+        </div>
+        <!-- Features only available to a Manager -->
+        {% if user|is_in_group:"Manager" %}
+        <div class="col-12 col-md-4 mb-3">
+            <a href="{% url 'room_list' %}" class="btn btn-primary btn-block" role="button">Manage Rooms</a>
+        </div>
+        <div class="col-12 col-md-4 mb-3">
+            <a href="{% url 'room_type_list' %}" class="btn btn-primary btn-block" role="button">Manage Room Types</a>
+        </div>
+        {% endif %}  
+    </div>
+</div>
+{% endblock %}

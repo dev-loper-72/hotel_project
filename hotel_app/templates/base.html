@@ -1,0 +1,63 @@
+<!-- Base layout html template that other pages should extend -->
+
+<!-- Load custom filters (to modify html display based on user's group) -->
+{% load custom_filters %}
+
+<!-- Load static files (css etc) -->
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Block giving the web page a title -->
+    <title> {% block title %} Hotel Management App {% endblock %} </title>
+    {% comment %} https://www.jsdelivr.com/package/npm/bootstrap {% endcomment %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">  <!-- Create a fixed-top navbar with Bootstrap classes -->
+        <a class="navbar-brand" href="{% url 'home' %}">Hotel Management</a>  <!-- Link the brand name to the home page using Django's URL tag -->
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="true" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>  <!-- Button to toggle the navbar on smaller screens -->
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">  <!-- Collapsible navbar content -->
+            <ul class="navbar-nav">  <!-- Navbar items container -->
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'guest_list' %}">Guests</a>  <!-- Link to the guest list page -->
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'reservation_list' %}">Reservations</a>  <!-- Link to the reservations list page -->
+                </li>                
+                {% if user|is_in_group:"Manager" %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'room_list' %}">Rooms</a>  <!-- Link to the room list page -->
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'room_type_list' %}">Room Types</a>  <!-- Link to the room type list page -->
+                </li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>   <!-- Link to the logout page -->
+                {% else %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>   <!-- Link to the login page -->
+                {% endif %}                
+            </ul>
+        </div>
+    </nav>
+    <!-- Block to be used to hold the page's main content -->
+    <div class="container">
+        {% block content %}{% endblock  %}
+    </div>
+    <!-- Block to be used to hold the page's footer -->
+    <div class="container">
+        {% block footer %}{% endblock  %}
+    </div>
+    <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
+    <script src="
+    https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.min.js
+    "></script>
+</body>
+</html>

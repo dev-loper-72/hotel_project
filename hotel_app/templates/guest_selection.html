@@ -1,0 +1,23 @@
+<!-- Extend the base layout for guest lists -->
+{% extends "guest_list_base.html" %}
+
+{% block title %} Select a Guest for this Reservation {% endblock %}
+{% block heading %}
+Select a Guest for this Reservation
+{% endblock %}
+{% block subheading %}
+<div>
+<p>The guest is booking room {{ room_number }}, from {{ start_date|date:"d/m/Y" }} for {{ length_of_stay }} nights</p>
+</div>
+{% endblock %}
+
+{% block actions %}
+                    <a href="{% url 'reservation_create' guest.guest_id %}" class="btn btn-success btn-sm" >Select Guest</a>
+{% endblock %}
+
+{% block footer %}
+<div class="button-group">
+    <a href="{% url 'guest_create' %}?mode=selection" class="btn btn-secondary btn-sm">Register New Guest</a>
+    <a href="{% url 'home' %}" class="btn btn-danger btn-sm">Cancel</a>
+</div>
+{% endblock %}

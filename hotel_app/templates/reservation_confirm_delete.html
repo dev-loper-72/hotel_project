@@ -1,0 +1,15 @@
+<!-- Extend the base layout from the base.html -->
+{% extends "base.html" %}
+
+{% block title %} Delete Reservation {% endblock title %}
+
+{% block content %}
+<h2 class="confirm-header">Delete a Reservation</h2>
+<p class="confirm-prompt">Are you sure you want to delete this reservation? : </p>
+  <p class="confirm-context">Room {{ reservation.room_number }} on {{ reservation.start_of_stay|date:"d/m/Y" }} for {{ reservation.guest.display_name }}</p>
+  <form  method="post" class="text-center">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger btn-sm">Yes</button>
+    <a href="{% url 'reservation_list' %}" class="btn btn-secondary btn-sm">Cancel</a>
+  </form>    
+{% endblock content %}

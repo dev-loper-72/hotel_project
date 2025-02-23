@@ -1,0 +1,47 @@
+<!-- Extend the base layout from the base.html -->
+{% extends "base.html" %}
+
+{% block title %} Room Types {% endblock %}
+
+{% block content %}
+    <h2 class="text-center mb-3">Room Types</h2>
+    <table class="table table-bordered table-striped ">
+        <thead class="thead-dark">
+            <tr>
+                <th>Room Type</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Deluxe</th>
+                <th>Bath</th>
+                <th>Sep.Shower</th>
+                <th>Max Guests</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rt in room_types %}
+            <tr>
+                <td>{{ rt.room_type_code }} </td>
+                <td>{{ rt.room_type_name }} </td>
+                <td>{{ rt.price }} </td>
+                <td>{{ rt.deluxe }} </td>
+                <td>{{ rt.bath }} </td>
+                <td>{{ rt.separate_shower }} </td>
+                <td>{{ rt.maximum_guests }} </td>
+                <td> 
+                    <div class="button-group">
+                        <a href="{% url 'room_type_update' rt.room_type_code %}" class="btn btn-warning btn-sm" >Edit</a>
+                        <a href="{% url 'room_type_delete' rt.room_type_code %}" class="btn btn-danger btn-sm" >Delete</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block footer %}
+<div class="button-group">
+    <a href="{% url 'room_type_create' %}" class="btn btn-secondary btn-sm">Add New Room Type</a>
+    <a href="{% url 'home' %}" class="btn btn-secondary btn-sm">Home</a>
+</div>
+{% endblock %}
