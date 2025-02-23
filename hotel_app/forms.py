@@ -156,9 +156,31 @@ class ReservationForm(forms.ModelForm):
         label="Notes"
     )
 
-    # override save to make sure the read-only values are also saved into the model
-    # Note: by default django doesn't save read-only/disabled values so this is necessary
-    #       to populate the database table
+    # Override clean to make sure the read-only values are also saved into the model
+    # so they can be used for validation
+    # Note: by default django seem to put read-only/disabled values in the cleaned_data
+    # so this seems a necessary step for validation
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if cleaned_data.get('guest') is None:
+            cleaned_data['guest'] = self.initial.get('guest')
+        if cleaned_data.get('room_number') is None:
+            cleaned_data['room_number'] = self.initial.get('room_number')
+        if cleaned_data.get('reservation_date_time') is None:
+            cleaned_data['reservation_date_time'] = self.initial.get('reservation_date_time')
+        if cleaned_data.get('start_of_stay') is None:
+            cleaned_data['start_of_stay'] = self.initial.get('start_of_stay')
+        if cleaned_data.get('length_of_stay') is None:
+            cleaned_data['length_of_stay'] = self.initial.get('length_of_stay')
+        if cleaned_data.get('price') is None:
+            cleaned_data['price'] = self.initial.get('price')
+        if cleaned_data.get('status_code') is None:
+            cleaned_data['status_code'] = self.initial.get('status_code')
+
+        return cleaned_data
+    
+
     def save(self, commit=True):
         instance = super().save(commit=False)
         

@@ -83,6 +83,17 @@ class Reservation(models.Model):
         return self.start_of_stay + timedelta(days=self.length_of_stay)
 
     def clean(self):
+        cleaned_data = super().clean()
+        
+        print("Before:", self.length_of_stay)  # Debugging
+
+        if self.length_of_stay is None:
+            self.length_of_stay = getattr(self, 'length_of_stay', None) 
+
+        print("After:", self.length_of_stay)  # Debugging
+
+        print(f"Length of stay in clean() {self.length_of_stay}")
+        print(f"Start of stay in clean() {self.start_of_stay}")
         """ Prevent overlapping reservations for the same room. """
         overlapping_reservations = Reservation.objects.filter(
             room_number=self.room_number # find other reservations using the same room
@@ -95,7 +106,7 @@ class Reservation(models.Model):
                 ((F('start_of_stay') -self.start_of_stay)/86400000000)+ F('length_of_stay'), output_field=IntegerField() # convert to whole days
             )
         ).filter(
-            start_of_stay__lt=self.end_date,  # Existing booking starts before this one ends
+            start_of_stay__lt=(self.start_of_stay + timedelta(days=self.length_of_stay)),  # Existing booking starts before this one ends
             days_between__gt=0  # Existing booking ends after this one starts
         ).exclude(pk=self.pk)  # Exclude our own record in case we're updating our existing reservation
 

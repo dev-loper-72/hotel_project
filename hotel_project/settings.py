@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'hotel_app.apps.HotelAppConfig',
     'crispy_forms',
-    'crispy_bootstrap5',    
+    'crispy_bootstrap5',  
 ]
 
 MIDDLEWARE = [
