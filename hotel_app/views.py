@@ -71,7 +71,7 @@ def guest_create_view(request):
             form.save()
             # use mode to determine which page to navigate to next
             if mode == 'selection':
-                return redirect('guest_selection')
+                return redirect('available_rooms_guest_selection')
             else:
                 return redirect('guest_list')
     else:
