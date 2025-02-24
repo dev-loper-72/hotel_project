@@ -132,7 +132,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Relative path
+    #os.path.join(BASE_DIR, 'static'),  # Relative path
+
+    os.path.join(BASE_DIR, 'staticfiles'),  # Relative path
 ]
 
 # Default primary key field type
