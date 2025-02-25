@@ -74,47 +74,31 @@ class Reservation(models.Model):
     number_of_guests = models.PositiveSmallIntegerField()
     start_of_stay = models.DateField()
     length_of_stay = models.PositiveSmallIntegerField()
+    end_date = models.DateField(null=True, blank=True) # this will be derived from start_of_stay and length_of_stay during save()
     status_code = models.CharField(max_length=2, choices=STATUS_CHOICES)
     notes = models.TextField(max_length=500, blank=True, null=True)
 
-    @property
-    def end_date(self):
-        # Calculate and return the end date by using start_of_stay and length_of_stay
-        return self.start_of_stay + timedelta(days=self.length_of_stay)
-
     def clean(self):
         cleaned_data = super().clean()
-        
-        print("Before:", self.length_of_stay)  # Debugging
 
         if self.length_of_stay is None:
             self.length_of_stay = getattr(self, 'length_of_stay', None) 
 
-        print("After:", self.length_of_stay)  # Debugging
-
-        print(f"Length of stay in clean() {self.length_of_stay}")
-        print(f"Start of stay in clean() {self.start_of_stay}")
-        """ Prevent overlapping reservations for the same room. """
+        #Prevent overlapping reservations for the same room
         overlapping_reservations = Reservation.objects.filter(
-            room_number=self.room_number # find other reservations using the same room
-        ).annotate(
-            # Calculate if the other reservation's end date is before or after this one's start date
-            # (uses /86400000000 to convert date to whole days as sqlite3 doesn't like the date+int arithmetic )
-            # if days_between < 0 then the other reservation will ended after this one starts and so is considered a
-            # potential overlapping reservation (other filters will need to be checked)
-            days_between=ExpressionWrapper(
-                ((F('start_of_stay') -self.start_of_stay)/86400000000)+ F('length_of_stay'), output_field=IntegerField() # convert to whole days
-            )
-        ).filter(
+            room_number=self.room_number, # find other reservations using the same room
             start_of_stay__lt=(self.start_of_stay + timedelta(days=self.length_of_stay)),  # Existing booking starts before this one ends
-            days_between__gt=0  # Existing booking ends after this one starts
+            end_date__gt=self.start_of_stay  # Existing booking ends after this one starts
         ).exclude(pk=self.pk)  # Exclude our own record in case we're updating our existing reservation
-
 
         if overlapping_reservations.exists():
             raise ValidationError("This room is already booked for the entered dates.")
 
     def save(self, *args, **kwargs):
+        #  Automatically calculate and store end_date before saving
+        if self.start_of_stay and self.length_of_stay:
+            self.end_date = self.start_of_stay + timedelta(days=self.length_of_stay)
+
         self.full_clean()  # Call full_clean before saving to force validation
         super().save(*args, **kwargs)
 
