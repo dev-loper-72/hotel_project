@@ -8,8 +8,14 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
+from django.urls import reverse
 from datetime import datetime, date, timedelta
 from rest_framework import generics
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .permissions import IsManager  # customised permissions
 from .serialisers import GuestSerialiser, ReservationSerialiser, RoomSerialiser, RoomTypeSerialiser
 from . models import Guest, Reservation, Room, RoomType
 from . filters import AvailableRoomFilter, GuestFilter, ReservationFilter
@@ -51,10 +57,7 @@ def logout_view(request):
 # Home page views
 #
 @login_required
-def home_view(request):
-    # Check if user belongs to the 'Manager' group
-    is_manager = request.user.groups.filter(name='Manager').exists()
-    
+def home_view(request):   
     return render(request, 'home.html')
 
 #
@@ -461,47 +464,74 @@ def room_type_delete_view(request, room_type_code):
 #
 # Rest API suppport for each of the models
 #
+@api_view(['GET'])
+def api_root(request, format=None):
+    print("api_root was called!")  # Debugging line
+    return Response({
+        'guest': request.build_absolute_uri(reverse('api_guest_list_create')),
+        'reservation': request.build_absolute_uri(reverse('api_reservation_list_create')),
+        'room': request.build_absolute_uri(reverse('api_room_list_create')),
+        'room-type': request.build_absolute_uri(reverse('api_room_type_list_create')),
+    })
 
 # Guest - list & create
-class GuestListCreate(generics.ListCreateAPIView):
+class APIGuestListCreate(generics.ListCreateAPIView):
+    # set style of authentication, requires either a logged in session (via admin tool or web site)
+    # or the username & password sent in the request header
+    authentication_classes = [SessionAuthentication, BasicAuthentication] 
+    permission_classes = [IsAuthenticated]
     queryset = Guest.objects.all()
     serializer_class = GuestSerialiser
 
 # Guest - retrieve, update, destroy
-class GuestRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Room.objects.all()
+class APIGuestRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated]
+    queryset = Guest.objects.all()
     serializer_class = GuestSerialiser
     lookup_field = 'pk' # accessed via primary key
 
 # Reservation - list & create
-class ReservationListCreate(generics.ListCreateAPIView):
+class APIReservationListCreate(generics.ListCreateAPIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerialiser
 
 # Reservation - retrieve, update, destroy
-class ReservationRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+class APIReservationRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated]
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerialiser
     lookup_field = 'pk' # accessed via primary key
 
 # Room - list & create
-class RoomListCreate(generics.ListCreateAPIView):
+class APIRoomListCreate(generics.ListCreateAPIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated, IsManager]  # Must be authenticated and have Manager access level
     queryset = Room.objects.all()
     serializer_class = RoomSerialiser
 
 # Room - retrieve, update, destroy
-class RoomRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+class APIRoomRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated, IsManager]  # Must be authenticated and have Manager access level
     queryset = Room.objects.all()
     serializer_class = RoomSerialiser
     lookup_field = 'pk' # accessed via primary key
 
 # Room type - list & create
-class RoomTypeListCreate(generics.ListCreateAPIView):
+class APIRoomTypeListCreate(generics.ListCreateAPIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated, IsManager]  # Must be authenticated and have Manager access level
     queryset = RoomType.objects.all()
     serializer_class = RoomTypeSerialiser
 
 # Room type - retrieve, update, destroy
-class RoomTypeRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+class APIRoomTypeRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    permission_classes = [IsAuthenticated, IsManager]  # Must be authenticated and have Manager access level
     queryset = RoomType.objects.all()
     serializer_class = RoomTypeSerialiser
     lookup_field = 'pk' # accessed via primary key
