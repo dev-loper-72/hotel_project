@@ -41,12 +41,12 @@ urlpatterns = [
     path("room-types/<str:room_type_code>/delete/", views.room_type_delete_view, name="room_type_delete"),  # Delete a RoomType
     # API URLS
     path('api/', views.api_root, name='api-root'),
-    path('api/guest/', views.GuestListCreate.as_view(), name="api_guest_list_create"),
-    path('api/guest/<int:pk>/', views.GuestRetrieveUpdateDestroy.as_view(), name="api_guest_update_destroy"),
-    path('api/reservation/', views.ReservationListCreate.as_view(), name="api_reservation_list_create"),
-    path('api/reservation/<int:pk>/', views.ReservationRetrieveUpdateDestroy.as_view(), name="api_reservation_update_destroy"),
-    path('api/room/', views.RoomListCreate.as_view(), name="api_room_list_create"),
-    path('api/room/<int:pk>/', views.RoomRetrieveUpdateDestroy.as_view(), name="api_room_update_destroy"),
-    path('api/room-type/', views.RoomTypeListCreate.as_view(), name="api_room_type_list_create"),
-    path('api/room-type/<str:pk>/', views.RoomTypeRetrieveUpdateDestroy.as_view(), name="api_room_type_update_destroy"),  
+    path('api/guest/', views.APIGuestListCreate.as_view(), name="api_guest_list_create"),
+    path('api/guest/<int:pk>/', views.APIGuestRetrieveUpdateDestroy.as_view(), name="api_guest_update_destroy"),
+    path('api/reservation/', views.APIReservationListCreate.as_view(), name="api_reservation_list_create"),
+    path('api/reservation/<int:pk>/', views.APIReservationRetrieveUpdateDestroy.as_view(), name="api_reservation_update_destroy"),
+    path('api/room/', views.APIRoomListCreate.as_view(), name="api_room_list_create"),
+    path('api/room/<int:pk>/', views.APIRoomRetrieveUpdateDestroy.as_view(), name="api_room_update_destroy"),
+    path('api/room-type/', views.APIRoomTypeListCreate.as_view(), name="api_room_type_list_create"),
+    path('api/room-type/<str:pk>/', views.APIRoomTypeRetrieveUpdateDestroy.as_view(), name="api_room_type_update_destroy"),  
 ]
