@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'hotel_app.apps.HotelAppConfig',
     'crispy_forms',
     'crispy_bootstrap5',  
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -171,11 +172,10 @@ STATIC_URL = '/static/'
 # Check and set this during deployment
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-MEDIA_URL = '/media/'
+MEDIA_URL = 'images/'
 
-STATICFILES_DIRS = [
+STATICFILES_DIRS = [ 
     os.path.join(BASE_DIR, 'static'),  # Relative path
-    #os.path.join(BASE_DIR, 'staticfiles'),  # Relative path
 ]
 
 # Default primary key field type
@@ -189,6 +189,4 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
-#SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-#SESSION_COOKIE_PERSISTENT = False 
-SESSION_COOKIE_AGE = 300 # 1800  # 30 minutes (time in seconds)
+SESSION_COOKIE_AGE = 1800  # 30 minutes (time in seconds)
