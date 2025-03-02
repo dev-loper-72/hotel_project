@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 
+
 from django.conf.global_settings import STATICFILES_DIRS
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -44,8 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'hotel_app.apps.HotelAppConfig',
     'crispy_forms',
-    'crispy_bootstrap5',
-    'widget_tweaks',
+    'crispy_bootstrap5',  
 ]
 
 MIDDLEWARE = [
@@ -171,10 +171,11 @@ STATIC_URL = '/static/'
 # Check and set this during deployment
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-MEDIA_URL = 'images/'
+MEDIA_URL = '/media/'
 
-STATICFILES_DIRS = [ 
+STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),  # Relative path
+    #os.path.join(BASE_DIR, 'staticfiles'),  # Relative path
 ]
 
 # Default primary key field type
@@ -188,4 +189,6 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
-SESSION_COOKIE_AGE = 1800  # 30 minutes (time in seconds)
+#SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+#SESSION_COOKIE_PERSISTENT = False 
+SESSION_COOKIE_AGE = 300 # 1800  # 30 minutes (time in seconds)
