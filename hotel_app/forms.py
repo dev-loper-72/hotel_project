@@ -450,11 +450,11 @@ class RoomTypeForm(forms.ModelForm):
         widgets = {
             'room_type_code': forms.TextInput(attrs={'placeholder': 'Code (e.g., SI, DO)', 'class': 'form-control'}),
             'room_type_name': forms.TextInput(attrs={'placeholder': 'Room Type Name (e.g., Suite)', 'class': 'form-control'}),
-            'price': forms.NumberInput(attrs={'placeholder': 'Price', 'class': 'form-control', 'step': '0.50'}),
+            'price': forms.NumberInput(attrs={'placeholder': '100.00', 'class': 'form-control', 'step': '0.50'}),
             'deluxe': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'bath': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'separate_shower': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'maximum_guests': forms.NumberInput(attrs={'placeholder': 'Maximum Guests', 'class': 'form-control', 'min': 1}),
+            'maximum_guests': forms.NumberInput(attrs={'placeholder': '1', 'class': 'form-control', 'min': 1}),
         }
         labels = {
             'room_type_code': 'Room Type Code',

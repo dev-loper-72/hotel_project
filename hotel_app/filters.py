@@ -24,7 +24,7 @@ class GuestFilter(django_filters.FilterSet):
     last_name = django_filters.CharFilter(
         label="Last name",
         field_name='last_name',
-        lookup_expr='iexact',
+        lookup_expr='icontains',
         widget=forms.TextInput(attrs={
             'pattern': r'^[A-Za-z\-\' ]+$',
             'title': 'Last name can only contain letters, hyphens, apostrophes and spaces'
