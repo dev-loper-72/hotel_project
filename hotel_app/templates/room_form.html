@@ -8,13 +8,18 @@
 <form method="POST" class="jumbotron">
     {% csrf_token %}
     {% for field in form  %}
-        <div class="form-group row">
+        <div class="form-group row {% if field.errors %}has-error{% endif %}">
             <label for="{{ field.id_for_label }}" class="col-md-3 col-form-label text-left">{{ field.label }}</label>
-            <div class="col-md-9">{{ field }}</div>
+            <div class="col-md-9">
+                {{ field }}
+                {% if field.errors %}
+                <div class="invalid-feedback d-block">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{ field.errors.0 }}
+                </div>
+                {% endif %}
+            </div>
         </div>
-        {% if field.errors %} <!-- If the field has an error, display it underneath -->            
-            <span class="text-danger">{{ field.errors.0 }}</span>  
-        {% endif %}
     {% endfor %}
     <div class="button-group">
         <button class="btn btn-success btn-sm mt-4" type="submit">Save Room</button>

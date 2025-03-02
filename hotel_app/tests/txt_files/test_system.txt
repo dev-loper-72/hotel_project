@@ -1,0 +1,452 @@
+from django.test import TestCase, Client
+from django.urls import reverse
+from django.contrib.auth.models import User, Permission, Group
+from django.core.exceptions import ValidationError
+from decimal import Decimal
+from datetime import date, datetime, timedelta
+
+from hotel_app.models import Guest, RoomType, Room, Reservation
+from hotel_app.forms import GuestForm, ReservationForm
+
+class MultipleReservationSystemTestCase(TestCase):
+    """System tests for handling multiple concurrent reservations and room management"""
+    
+    def setUp(self):
+        # Create test user with full permissions
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='manager',
+            email='manager@hotel.com',
+            password='managerpass123'
+        )
+        
+        # Add all necessary permissions
+        manager_group = Group.objects.create(name='Manager')
+        permissions = Permission.objects.filter(
+            codename__in=[
+                'add_reservation', 'change_reservation', 'view_reservation', 'delete_reservation',
+                'add_guest', 'change_guest', 'view_guest', 'delete_guest',
+                'add_room', 'change_room', 'view_room', 'delete_room',
+                'add_roomtype', 'change_roomtype', 'view_roomtype', 'delete_roomtype'
+            ]
+        )
+        manager_group.permissions.set(permissions)
+        self.user.groups.add(manager_group)
+        self.user.save()
+
+        # Create room types
+        self.standard_room = RoomType.objects.create(
+            room_type_code='STD',
+            room_type_name='Standard Room',
+            price=Decimal('100.00'),
+            deluxe=False,
+            bath=True,
+            separate_shower=False,
+            maximum_guests=2
+        )
+        
+        self.deluxe_room = RoomType.objects.create(
+            room_type_code='DLX',
+            room_type_name='Deluxe Room',
+            price=Decimal('200.00'),
+            deluxe=True,
+            bath=True,
+            separate_shower=True,
+            maximum_guests=3
+        )
+
+        # Create multiple rooms
+        self.rooms = []
+        for i in range(101, 104):  # Create 3 standard rooms
+            self.rooms.append(Room.objects.create(
+                room_number=i,
+                room_type=self.standard_room
+            ))
+        
+        for i in range(201, 203):  # Create 2 deluxe rooms
+            self.rooms.append(Room.objects.create(
+                room_number=i,
+                room_type=self.deluxe_room
+            ))
+
+        # Create multiple guests
+        self.guests = []
+        guest_data = [
+            {
+                'title': 'Mr',
+                'first_name': 'John',
+                'last_name': 'Smith',
+                'phone_number': '07123456789',
+                'email': 'john.smith@example.com',
+                'address_line1': '123 Main St',
+                'city': 'London',
+                'county': 'Greater London',
+                'postcode': 'SW1A 1AA'
+            },
+            {
+                'title': 'Mrs',
+                'first_name': 'Jane',
+                'last_name': 'Doe',
+                'phone_number': '07987654321',
+                'email': 'jane.doe@example.com',
+                'address_line1': '456 High St',
+                'city': 'Manchester',
+                'county': 'Greater Manchester',
+                'postcode': 'M1 4BT'
+            }
+        ]
+        
+        for data in guest_data:
+            self.guests.append(Guest.objects.create(**data))
+
+    def test_multiple_concurrent_reservations(self):
+        """Test handling multiple reservations for different rooms in overlapping periods"""
+        self.client.login(username='manager', password='managerpass123')
+        
+        # Create base reservation data
+        base_start_date = date.today() + timedelta(days=30)
+        
+        # First reservation - Standard room for 3 nights
+        session = self.client.session
+        session['selected_room_number'] = self.rooms[0].room_number  # First standard room
+        session['selected_start_date'] = base_start_date.strftime('%Y-%m-%d')
+        session['selected_length_of_stay'] = 3
+        session.save()
+
+        reservation1_data = {
+            'guest': self.guests[0].guest_id,
+            'room_number': self.rooms[0].room_number,
+            'guest_display': f"{self.guests[0].title} {self.guests[0].first_name} {self.guests[0].last_name}",
+            'room_number_display': f"{self.rooms[0].room_number} - {self.rooms[0].room_type.room_type_name}",
+            'reservation_date_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'price': '300.00',  # 3 nights at 100 per night
+            'amount_paid': '300.00',
+            'number_of_guests': 2,
+            'start_of_stay': base_start_date.strftime('%Y-%m-%d'),
+            'length_of_stay': 3,
+            'status_code': 'RE',
+            'notes': 'First reservation'
+        }
+
+        response = self.client.post(
+            reverse('reservation_create', kwargs={'guest_id': self.guests[0].guest_id}),
+            reservation1_data,
+            follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Second reservation - Deluxe room for overlapping period
+        session = self.client.session
+        session['selected_room_number'] = self.rooms[3].room_number  # First deluxe room
+        session['selected_start_date'] = (base_start_date + timedelta(days=1)).strftime('%Y-%m-%d')
+        session['selected_length_of_stay'] = 4
+        session.save()
+
+        reservation2_data = {
+            'guest': self.guests[1].guest_id,
+            'room_number': self.rooms[3].room_number,
+            'guest_display': f"{self.guests[1].title} {self.guests[1].first_name} {self.guests[1].last_name}",
+            'room_number_display': f"{self.rooms[3].room_number} - {self.rooms[3].room_type.room_type_name}",
+            'reservation_date_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'price': '800.00',  # 4 nights at 200 per night
+            'amount_paid': '800.00',
+            'number_of_guests': 2,
+            'start_of_stay': (base_start_date + timedelta(days=1)).strftime('%Y-%m-%d'),
+            'length_of_stay': 4,
+            'status_code': 'RE',
+            'notes': 'Second reservation'
+        }
+
+        response = self.client.post(
+            reverse('reservation_create', kwargs={'guest_id': self.guests[1].guest_id}),
+            reservation2_data,
+            follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Verify both reservations exist
+        self.assertEqual(Reservation.objects.count(), 2)
+        
+        # Verify room availability for the period
+        # The first standard room and first deluxe room should be unavailable
+        # Other rooms should still be available
+        
+        # Try to make reservation for same standard room in overlapping period
+        session = self.client.session
+        session['selected_room_number'] = self.rooms[0].room_number
+        session['selected_start_date'] = (base_start_date + timedelta(days=1)).strftime('%Y-%m-%d')
+        session['selected_length_of_stay'] = 2
+        session.save()
+
+        conflicting_reservation_data = {
+            'guest': self.guests[1].guest_id,
+            'room_number': self.rooms[0].room_number,
+            'guest_display': f"{self.guests[1].title} {self.guests[1].first_name} {self.guests[1].last_name}",
+            'room_number_display': f"{self.rooms[0].room_number} - {self.rooms[0].room_type.room_type_name}",
+            'reservation_date_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'price': '200.00',
+            'amount_paid': '200.00',
+            'number_of_guests': 1,
+            'start_of_stay': (base_start_date + timedelta(days=1)).strftime('%Y-%m-%d'),
+            'length_of_stay': 2,
+            'status_code': 'RE',
+            'notes': 'Conflicting reservation attempt'
+        }
+
+        with self.assertRaises(ValidationError) as context:
+            response = self.client.post(
+                reverse('reservation_create', kwargs={'guest_id': self.guests[1].guest_id}),
+                conflicting_reservation_data,
+                follow=True
+            )
+        
+        self.assertTrue('This room is already booked for the entered dates' in str(context.exception))
+        
+        # Verify still only 2 reservations exist
+        self.assertEqual(Reservation.objects.count(), 2)
+
+    def test_full_guest_lifecycle(self):
+        """Test complete guest lifecycle including multiple stays and history"""
+        self.client.login(username='manager', password='managerpass123')
+        
+        # Create a new guest
+        new_guest_data = {
+            'title': 'Dr',
+            'first_name': 'Alice',
+            'last_name': 'Johnson',
+            'phone_number': '07111222333',
+            'email': 'alice.johnson@example.com',
+            'address_line1': '789 Park Road',
+            'city': 'Leeds',
+            'county': 'West Yorkshire',
+            'postcode': 'LS1 1AA'
+        }
+        
+        response = self.client.post(reverse('guest_create'), new_guest_data, follow=True)
+        self.assertEqual(response.status_code, 200)
+        
+        guest = Guest.objects.get(email='alice.johnson@example.com')
+        
+        # Make first reservation - Standard room
+        base_start_date = date.today() + timedelta(days=30)
+        
+        session = self.client.session
+        session['selected_room_number'] = self.rooms[0].room_number
+        session['selected_start_date'] = base_start_date.strftime('%Y-%m-%d')
+        session['selected_length_of_stay'] = 2
+        session.save()
+
+        reservation1_data = {
+            'guest': guest.guest_id,
+            'room_number': self.rooms[0].room_number,
+            'guest_display': f"{guest.title} {guest.first_name} {guest.last_name}",
+            'room_number_display': f"{self.rooms[0].room_number} - {self.rooms[0].room_type.room_type_name}",
+            'reservation_date_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'price': '200.00',
+            'amount_paid': '200.00',
+            'number_of_guests': 1,
+            'start_of_stay': base_start_date.strftime('%Y-%m-%d'),
+            'length_of_stay': 2,
+            'status_code': 'RE',
+            'notes': 'First stay'
+        }
+
+        response = self.client.post(
+            reverse('reservation_create', kwargs={'guest_id': guest.guest_id}),
+            reservation1_data,
+            follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        # Make second reservation - Deluxe room for future date
+        future_start_date = date.today() + timedelta(days=60)
+        
+        session = self.client.session
+        session['selected_room_number'] = self.rooms[3].room_number
+        session['selected_start_date'] = future_start_date.strftime('%Y-%m-%d')
+        session['selected_length_of_stay'] = 3
+        session.save()
+
+        reservation2_data = {
+            'guest': guest.guest_id,
+            'room_number': self.rooms[3].room_number,
+            'guest_display': f"{guest.title} {guest.first_name} {guest.last_name}",
+            'room_number_display': f"{self.rooms[3].room_number} - {self.rooms[3].room_type.room_type_name}",
+            'reservation_date_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'price': '600.00',
+            'amount_paid': '600.00',
+            'number_of_guests': 2,
+            'start_of_stay': future_start_date.strftime('%Y-%m-%d'),
+            'length_of_stay': 3,
+            'status_code': 'RE',
+            'notes': 'Second stay'
+        }
+
+        response = self.client.post(
+            reverse('reservation_create', kwargs={'guest_id': guest.guest_id}),
+            reservation2_data,
+            follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify guest has two reservations
+        guest_reservations = Reservation.objects.filter(guest=guest)
+        self.assertEqual(guest_reservations.count(), 2)
+        
+        # Update guest information
+        updated_guest_data = new_guest_data.copy()
+        updated_guest_data['phone_number'] = '07999888777'
+        updated_guest_data['email'] = 'dr.alice.johnson@example.com'
+        
+        response = self.client.post(
+            reverse('guest_update', kwargs={'guest_id': guest.guest_id}),
+            updated_guest_data,
+            follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify guest information was updated
+        guest.refresh_from_db()
+        self.assertEqual(guest.phone_number, '07999888777')
+        self.assertEqual(guest.email, 'dr.alice.johnson@example.com')
+        
+        # Check guest list page for guest's information
+        response = self.client.get(reverse('guest_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Dr')  # Check title
+        self.assertContains(response, 'Alice')  # Check first name
+        self.assertContains(response, 'Johnson')  # Check last name
+
+        # Check reservations list for guest's stays
+        response = self.client.get(reverse('reservation_list'))
+        self.assertEqual(response.status_code, 200)
+        # Check for room numbers instead of notes
+        self.assertContains(response, str(self.rooms[0].room_number))  # First reservation room
+        self.assertContains(response, str(self.rooms[3].room_number))  # Second reservation room
+
+class RoomManagementSystemTestCase(TestCase):
+    """System tests for room management functionality"""
+    
+    def setUp(self):
+        # Create test user with full permissions
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='manager',
+            email='manager@hotel.com',
+            password='managerpass123'
+        )
+        
+        # Add all necessary permissions
+        manager_group = Group.objects.create(name='Manager')
+        permissions = Permission.objects.filter(
+            codename__in=[
+                'add_reservation', 'change_reservation', 'view_reservation', 'delete_reservation',
+                'add_guest', 'change_guest', 'view_guest', 'delete_guest',
+                'add_room', 'change_room', 'view_room', 'delete_room',
+                'add_roomtype', 'change_roomtype', 'view_roomtype', 'delete_roomtype'
+            ]
+        )
+        manager_group.permissions.set(permissions)
+        self.user.groups.add(manager_group)
+        self.user.save()
+
+        # Create initial room type
+        self.standard_room = RoomType.objects.create(
+            room_type_code='STD',
+            room_type_name='Standard Room',
+            price=Decimal('100.00'),
+            deluxe=False,
+            bath=True,
+            separate_shower=False,
+            maximum_guests=2
+        )
+
+    def test_room_lifecycle(self):
+        """Test complete room lifecycle including creation, updates, and status changes"""
+        self.client.login(username='manager', password='managerpass123')
+        
+        # Create a new room
+        room_data = {
+            'room_number': 301,
+            'room_type': self.standard_room.room_type_code,
+            'notes': 'New room'
+        }
+        
+        response = self.client.post(reverse('room_create'), room_data, follow=True)
+        self.assertEqual(response.status_code, 200)
+        
+        room = Room.objects.get(room_number=301)
+        self.assertEqual(room.room_type, self.standard_room)
+        
+        # Create a guest for testing room status changes
+        guest = Guest.objects.create(
+            title='Ms',
+            first_name='Emma',
+            last_name='Wilson',
+            phone_number='07111222333',
+            email='emma.wilson@example.com',
+            address_line1='321 Queen Street',
+            city='York',
+            county='North Yorkshire',
+            postcode='YO1 1AA'
+        )
+        
+        # Make a reservation for the room
+        start_date = date.today() + timedelta(days=30)
+        
+        session = self.client.session
+        session['selected_room_number'] = room.room_number
+        session['selected_start_date'] = start_date.strftime('%Y-%m-%d')
+        session['selected_length_of_stay'] = 2
+        session.save()
+
+        reservation_data = {
+            'guest': guest.guest_id,
+            'room_number': room.room_number,
+            'guest_display': f"{guest.title} {guest.first_name} {guest.last_name}",
+            'room_number_display': f"{room.room_number} - {room.room_type.room_type_name}",
+            'reservation_date_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'price': '200.00',
+            'amount_paid': '200.00',
+            'number_of_guests': 1,
+            'start_of_stay': start_date.strftime('%Y-%m-%d'),
+            'length_of_stay': 2,
+            'status_code': 'RE',
+            'notes': 'Test reservation'
+        }
+
+        response = self.client.post(
+            reverse('reservation_create', kwargs={'guest_id': guest.guest_id}),
+            reservation_data,
+            follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify room appears in room list
+        response = self.client.get(reverse('room_list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '301')
+        self.assertContains(response, 'Standard Room')
+        
+        # Check room details page
+        response = self.client.get(reverse('room_view', kwargs={'room_number': room.room_number}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test reservation')
+        
+        # Update room notes
+        room_update_data = {
+            'room_number': room.room_number,
+            'room_type': self.standard_room.room_type_code,
+            'notes': 'Updated room notes'
+        }
+        
+        response = self.client.post(
+            reverse('room_update', kwargs={'room_number': room.room_number}),
+            room_update_data,
+            follow=True
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify room was updated
+        room.refresh_from_db()
+        self.assertEqual(room.notes, 'Updated room notes')

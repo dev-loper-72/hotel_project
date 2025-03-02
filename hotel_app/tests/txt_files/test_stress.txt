@@ -1,0 +1,486 @@
+"""
+Stress tests for the hotel management system.
+
+This module contains stress tests that verify system performance under heavy load:
+1. Bulk guest creation and querying
+2. Concurrent reservation processing
+3. Large-scale room availability searches
+"""
+
+from django.test import TestCase, Client
+from django.urls import reverse
+from django.contrib.auth.models import User, Permission, Group
+from django.db import connection, reset_queries, transaction
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
+from decimal import Decimal
+import time
+import random
+from faker import Faker
+from concurrent.futures import ThreadPoolExecutor
+from datetime import date, datetime, timedelta
+
+from hotel_app.models import Guest, RoomType, Room, Reservation
+
+class StressTestCase(TestCase):
+    """Base class for stress tests with common setup."""
+    
+    def setUp(self):
+        """Set up test data and configurations."""
+        self.client = Client()
+        self.faker = Faker('en_GB')  # Use UK locale for appropriate data
+        
+        # Create test user with permissions
+        self.user = User.objects.create_user(
+            username='stresstest',
+            email='stress@test.com',
+            password='stresspass123'
+        )
+        
+        # Add necessary permissions
+        manager_group = Group.objects.create(name='StressManager')
+        view_room_permission = Permission.objects.get(codename='view_room')
+        manager_group.permissions.add(view_room_permission)
+        self.user.groups.add(manager_group)
+        self.user.save()
+
+        # Login the test user
+        self.client.login(username='stresstest', password='stresspass123')
+
+    def generate_random_guest_data(self):
+        """Generate random but realistic guest data using Faker."""
+        title_choices = ['Mr', 'Mrs', 'Ms', 'Dr', 'Prof']
+        
+        return {
+            'title': random.choice(title_choices),
+            'first_name': self.faker.first_name(),
+            'last_name': self.faker.last_name(),
+            'phone_number': self.faker.phone_number()[:15],  # Ensure it fits model max_length
+            'email': self.faker.email(),
+            'address_line1': self.faker.street_address(),
+            'address_line2': self.faker.secondary_address() if random.random() > 0.5 else '',
+            'city': self.faker.city(),
+            'county': self.faker.county(),
+            'postcode': self.faker.postcode(),
+            'guest_notes': self.faker.text(max_nb_chars=200) if random.random() > 0.7 else ''
+        }
+
+class BulkGuestCreationTest(StressTestCase):
+    """Tests focused on creating and managing large numbers of guests."""
+
+    def test_bulk_create_1000_guests(self):
+        """Test creation and querying of 1000 guests."""
+        start_time = time.time()
+        
+        # Create guests in batches of 100 for better performance
+        batch_size = 100
+        total_guests = 1000
+        
+        print(f"\nStarting bulk guest creation test ({total_guests} guests)...")
+        
+        for batch_start in range(0, total_guests, batch_size):
+            with transaction.atomic():  # Use transaction for better performance
+                guest_batch = []
+                for _ in range(batch_size):
+                    guest_data = self.generate_random_guest_data()
+                    guest_batch.append(Guest(**guest_data))
+                
+                # Bulk create the batch
+                Guest.objects.bulk_create(guest_batch)
+                
+                print(f"Created guests {batch_start + 1} to {batch_start + batch_size}")
+        
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        # Verify the results
+        total_count = Guest.objects.count()
+        print(f"\nResults:")
+        print(f"Total guests created: {total_count}")
+        print(f"Total time taken: {total_time:.2f} seconds")
+        print(f"Average time per guest: {(total_time/total_guests)*1000:.2f} ms")
+        
+        # Test querying performance
+        print("\nTesting query performance...")
+        
+        # Test 1: Count all guests
+        query_start = time.time()
+        guest_count = Guest.objects.count()
+        query_time = time.time() - query_start
+        print(f"Count query time: {query_time:.2f} seconds")
+        
+        # Test 2: Filter by city
+        random_city = Guest.objects.order_by('?').first().city
+        query_start = time.time()
+        city_count = Guest.objects.filter(city=random_city).count()
+        query_time = time.time() - query_start
+        print(f"City filter query time: {query_time:.2f} seconds")
+        print(f"Found {city_count} guests in {random_city}")
+        
+        # Test 3: Search by name pattern
+        query_start = time.time()
+        name_count = Guest.objects.filter(last_name__startswith='S').count()
+        query_time = time.time() - query_start
+        print(f"Name search query time: {query_time:.2f} seconds")
+        print(f"Found {name_count} guests with last name starting with 'S'")
+        
+        # Assertions to ensure performance meets requirements
+        self.assertEqual(total_count, total_guests, 
+            f"Expected {total_guests} guests, but found {total_count}")
+        
+        self.assertLess(total_time, 30.0,
+            f"Bulk creation took too long: {total_time:.2f} seconds")
+        
+        # Assert reasonable query times
+        self.assertLess(query_time, 1.0,
+            f"Name search query too slow: {query_time:.2f} seconds")
+
+class ConcurrentGuestCreationTest(StressTestCase):
+    """Tests focused on concurrent guest creation and querying."""
+
+    def test_concurrent_guest_creation(self):
+        """Test creating guests with concurrent requests."""
+        num_concurrent = 10  # Number of concurrent requests
+        guests_per_request = 10  # Guests to create per request
+        
+        print(f"\nTesting concurrent guest creation...")
+        print(f"Concurrent requests: {num_concurrent}")
+        print(f"Guests per request: {guests_per_request}")
+        
+        start_time = time.time()
+        
+        def create_guest_batch():
+            """Create a batch of guests."""
+            with transaction.atomic():
+                guests = []
+                for _ in range(guests_per_request):
+                    guest_data = self.generate_random_guest_data()
+                    guests.append(Guest(**guest_data))
+                return Guest.objects.bulk_create(guests)
+        
+        # Use ThreadPoolExecutor for concurrent execution
+        with ThreadPoolExecutor(max_workers=num_concurrent) as executor:
+            futures = []
+            for _ in range(num_concurrent):
+                futures.append(executor.submit(create_guest_batch))
+            
+            # Wait for all tasks to complete
+            for future in futures:
+                future.result()
+        
+        end_time = time.time()
+        total_time = end_time - start_time
+        
+        # Verify results
+        total_guests = Guest.objects.count()
+        expected_guests = num_concurrent * guests_per_request
+        
+        print(f"\nResults:")
+        print(f"Total guests created: {total_guests}")
+        print(f"Total time taken: {total_time:.2f} seconds")
+        print(f"Average time per batch: {(total_time/num_concurrent):.2f} seconds")
+        
+        # Assertions
+        self.assertEqual(total_guests, expected_guests,
+            f"Expected {expected_guests} guests, but found {total_guests}")
+        
+        self.assertLess(total_time, 10.0,
+            f"Concurrent creation took too long: {total_time:.2f} seconds")
+
+if __name__ == '__main__':
+    print("Running stress tests...")
+
+
+
+
+
+
+
+
+
+    ------------------------------------------------------------
+
+
+
+    """
+Stress tests for the hotel management system.
+
+This module contains stress tests that verify system behavior under heavy load:
+1. Concurrent user access
+2. High volume data operations
+3. Resource intensive operations
+4. Long-running transactions
+5. System recovery scenarios
+
+Each test is designed to simulate real-world stress conditions and ensure
+the system remains stable and responsive under load.
+"""
+
+from django.test import TestCase, Client, TransactionTestCase
+from django.urls import reverse
+from django.contrib.auth.models import User, Permission, Group
+from django.db import connection, reset_queries, transaction
+from django.utils import timezone
+from decimal import Decimal
+from datetime import date, datetime, timedelta
+import time
+import threading
+import random
+
+from hotel_app.models import Guest, RoomType, Room, Reservation
+from hotel_app.forms import GuestForm, ReservationForm
+
+class StressTestCase(TransactionTestCase):
+    """Base class for stress tests with common setup and utility methods."""
+    
+    def setUp(self):
+        """Set up test data and configurations."""
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+        
+        # Add necessary permissions
+        manager_group = Group.objects.create(name='Manager')
+        view_room_permission = Permission.objects.get(codename='view_room')
+        manager_group.permissions.add(view_room_permission)
+        self.user.groups.add(manager_group)
+        self.user.save()
+
+        # Create base test data
+        self.room_type = RoomType.objects.create(
+            room_type_code='STD',
+            room_type_name='Standard Room',
+            price=Decimal('100.00'),
+            deluxe=False,
+            bath=True,
+            separate_shower=False,
+            maximum_guests=2
+        )
+
+        # Create multiple rooms
+        self.rooms = []
+        for i in range(50):  # Create 50 rooms for stress testing
+            room = Room.objects.create(
+                room_number=100 + i,
+                room_type=self.room_type
+            )
+            self.rooms.append(room)
+
+        # Create base guest
+        self.guest = Guest.objects.create(
+            title='Mr',
+            first_name='John',
+            last_name='Smith',
+            phone_number='07123456789',
+            email='john.smith@example.com',
+            address_line1='123 Main Street',
+            city='London',
+            county='Greater London',
+            postcode='SW1A 1AA'
+        )
+
+        # Login the test user
+        self.client.login(username='testuser', password='testpass123')
+
+class ConcurrentUserStressTest(StressTestCase):
+    """Tests system behavior under concurrent user load."""
+
+    def simulate_user_actions(self):
+        """Simulate various user actions."""
+        client = Client()
+        client.login(username='testuser', password='testpass123')
+        
+        # Perform a series of common operations
+        actions = [
+            lambda: client.get(reverse('home')),
+            lambda: client.get(reverse('guest_list')),
+            lambda: client.get(reverse('room_list')),
+            lambda: client.get(
+                reverse('available_rooms_list'),
+                {'start_date': timezone.now().date().strftime('%Y-%m-%d'),
+                 'length_of_stay': '1'}
+            )
+        ]
+        
+        # Execute random actions
+        for _ in range(5):
+            action = random.choice(actions)
+            response = action()
+            self.assertEqual(response.status_code, 200)
+
+    def test_concurrent_users(self):
+        """Test system with multiple concurrent users."""
+        num_users = 10
+        threads = []
+        
+        # Create and start threads for concurrent users
+        for _ in range(num_users):
+            thread = threading.Thread(target=self.simulate_user_actions)
+            threads.append(thread)
+            thread.start()
+        
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+
+class HighVolumeDataStressTest(StressTestCase):
+    """Tests system behavior with high volume data operations."""
+
+    def test_bulk_reservation_creation(self):
+        """Test creating many reservations simultaneously."""
+        start_time = timezone.now()
+        reservations = []
+
+        # Create 100 reservations
+        for i in range(100):
+            start_date = timezone.now().date() + timedelta(days=i % 30)
+            room = self.rooms[i % len(self.rooms)]
+
+            reservation = Reservation(
+                guest=self.guest,
+                room_number=room,
+                reservation_date_time=start_time + timedelta(minutes=i),
+                price=Decimal('100.00'),
+                amount_paid=Decimal('0.00'),
+                number_of_guests=1,
+                start_of_stay=start_date,
+                length_of_stay=1,
+                status_code='RE'
+            )
+            reservations.append(reservation)
+
+        # Record initial count
+        initial_count = Reservation.objects.count()
+
+        # Measure time for bulk creation
+        start_creation_time = time.time()
+        Reservation.objects.bulk_create(reservations)
+        creation_time = time.time() - start_creation_time
+
+        # Verify all reservations were created
+        final_count = Reservation.objects.count()
+        self.assertEqual(final_count - initial_count, 100)
+
+        # Assert creation time is reasonable (less than 2 seconds)
+        self.assertLess(creation_time, 2.0,
+            f"Bulk creation took too long: {creation_time:.2f} seconds")
+
+    def test_bulk_guest_search(self):
+        """Test searching through a large number of guests."""
+        # Create many test guests
+        guests = []
+        for i in range(1000):
+            guest = Guest(
+                title='Mr',
+                first_name=f'Test{i}',
+                last_name=f'User{i}',
+                phone_number=f'07{str(i).zfill(9)}',
+                email=f'test{i}@example.com',
+                address_line1=f'{i} Test Street',
+                city='London',
+                county='Greater London',
+                postcode='SW1A 1AA'
+            )
+            guests.append(guest)
+        
+        Guest.objects.bulk_create(guests)
+        
+        # Test search performance
+        start_time = time.time()
+        response = self.client.get(reverse('guest_list'))
+        execution_time = (time.time() - start_time) * 1000  # ms
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertLess(execution_time, 1000,  # 1 second max
+            f"Guest list with 1000 records too slow: {execution_time:.2f}ms")
+
+class ResourceIntensiveStressTest(StressTestCase):
+    """Tests system behavior under resource-intensive operations."""
+
+    def test_complex_availability_search(self):
+        """Test complex room availability search under load."""
+        # Create many reservations across different dates
+        for i in range(100):
+            start_date = timezone.now().date() + timedelta(days=i % 30)
+            room = self.rooms[i % len(self.rooms)]
+            
+            Reservation.objects.create(
+                guest=self.guest,
+                room_number=room,
+                reservation_date_time=timezone.now(),
+                price=Decimal('100.00'),
+                amount_paid=Decimal('0.00'),
+                number_of_guests=1,
+                start_of_stay=start_date,
+                length_of_stay=random.randint(1, 5),
+                status_code='RE'
+            )
+        
+        # Perform multiple concurrent availability searches
+        def search_availability():
+            start_date = timezone.now().date() + timedelta(days=random.randint(0, 30))
+            response = self.client.get(
+                reverse('available_rooms_list'),
+                {'start_date': start_date.strftime('%Y-%m-%d'),
+                 'length_of_stay': str(random.randint(1, 5))}
+            )
+            self.assertEqual(response.status_code, 200)
+        
+        threads = []
+        for _ in range(10):  # 10 concurrent searches
+            thread = threading.Thread(target=search_availability)
+            threads.append(thread)
+            thread.start()
+        
+        for thread in threads:
+            thread.join()
+
+class SystemRecoveryStressTest(StressTestCase):
+    """Tests system recovery from stress conditions."""
+
+    def test_transaction_rollback_under_load(self):
+        """Test system recovery when transactions fail under load."""
+        
+        @transaction.atomic
+        def create_reservation_with_error(i):
+            # Create reservation
+            start_date = timezone.now().date() + timedelta(days=i)
+            reservation = Reservation.objects.create(
+                guest=self.guest,
+                room_number=self.rooms[0],  # Deliberately create conflict
+                reservation_date_time=timezone.now(),
+                price=Decimal('100.00'),
+                amount_paid=Decimal('0.00'),
+                number_of_guests=1,
+                start_of_stay=start_date,
+                length_of_stay=1,
+                status_code='RE'
+            )
+            
+            if i % 2 == 0:  # Simulate random errors
+                raise ValueError("Simulated error")
+            
+            return reservation
+        
+        # Attempt multiple reservations with some failing
+        successful = 0
+        failed = 0
+        
+        for i in range(20):
+            try:
+                create_reservation_with_error(i)
+                successful += 1
+            except ValueError:
+                failed += 1
+        
+        # Verify system state
+        self.assertEqual(failed, 10)  # Half should fail
+        self.assertEqual(successful, 10)  # Half should succeed
+        self.assertEqual(
+            Reservation.objects.count(),
+            10,  # Only successful reservations should exist
+            "Failed transactions were not properly rolled back"
+        )

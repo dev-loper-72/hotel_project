@@ -1,0 +1,161 @@
+"""
+Load testing script for the hotel management system using Locust.
+Tests various user scenarios under load to measure system performance.
+"""
+
+from locust import HttpUser, task, between
+from django.urls import reverse
+import json
+import random
+from datetime import datetime, timedelta
+
+class HotelUser(HttpUser):
+    # Wait between 1 to 5 seconds between tasks
+    wait_time = between(1, 5)
+    
+    def on_start(self):
+        """Initialize user session."""
+        # Login
+        self.login()
+        # Store some common data
+        self.room_types = ['STD', 'DLX', 'SUT']
+        self.guest_titles = ['Mr', 'Mrs', 'Ms', 'Dr']
+
+    def login(self):
+        """Login as test user."""
+        response = self.client.post("/login/", {
+            "username": "testuser",
+            "password": "testpass123"
+        })
+        if response.status_code != 200:
+            print(f"Login failed with status code: {response.status_code}")
+
+    @task(2)
+    def view_home(self):
+        """View home page."""
+        self.client.get("/")
+
+    @task(3)
+    def search_rooms(self):
+        """Search for available rooms."""
+        # Generate random dates for search
+        start_date = (datetime.now() + timedelta(days=random.randint(1, 30))).strftime('%Y-%m-%d')
+        length_of_stay = random.randint(1, 7)
+        
+        self.client.get(f"/available_rooms/?start_date={start_date}&length_of_stay={length_of_stay}")
+
+    @task(2)
+    def view_guest_list(self):
+        """View list of guests."""
+        self.client.get("/guests/")
+
+    @task(2)
+    def view_room_list(self):
+        """View list of rooms."""
+        self.client.get("/rooms/")
+
+    @task(1)
+    def create_guest(self):
+        """Create a new guest."""
+        guest_data = {
+            "title": random.choice(self.guest_titles),
+            "first_name": f"Test{random.randint(1000, 9999)}",
+            "last_name": f"User{random.randint(1000, 9999)}",
+            "phone_number": f"07{random.randint(100000000, 999999999)}",
+            "email": f"test{random.randint(1000, 9999)}@example.com",
+            "address_line1": f"{random.randint(1, 100)} Test Street",
+            "city": "London",
+            "county": "Greater London",
+            "postcode": "SW1A 1AA"
+        }
+        
+        self.client.post("/guests/create/", guest_data)
+
+    @task(1)
+    def create_reservation(self):
+        """Create a new reservation."""
+        # Get a random future date
+        start_date = (datetime.now() + timedelta(days=random.randint(1, 30))).strftime('%Y-%m-%d')
+        
+        reservation_data = {
+            "guest": "1",  # Assuming guest ID 1 exists
+            "room_type": random.choice(self.room_types),
+            "start_of_stay": start_date,
+            "length_of_stay": random.randint(1, 7),
+            "number_of_guests": random.randint(1, 3)
+        }
+        
+        self.client.post("/reservations/create/", reservation_data)
+
+    @task(2)
+    def view_reservations(self):
+        """View list of reservations."""
+        self.client.get("/reservations/")
+
+    @task(1)
+    def complex_search(self):
+        """Perform complex search operations."""
+        # Multiple search parameters
+        params = {
+            "start_date": (datetime.now() + timedelta(days=random.randint(1, 30))).strftime('%Y-%m-%d'),
+            "length_of_stay": random.randint(1, 7),
+            "room_type": random.choice(self.room_types),
+            "guests": random.randint(1, 3)
+        }
+        
+        self.client.get("/search/", params=params)
+
+class ReservationOnlyUser(HotelUser):
+    """User that only makes reservations."""
+    
+    @task
+    def make_reservation_flow(self):
+        """Complete reservation flow."""
+        # 1. Search for rooms
+        start_date = (datetime.now() + timedelta(days=random.randint(1, 30))).strftime('%Y-%m-%d')
+        self.client.get(f"/available_rooms/?start_date={start_date}&length_of_stay=2")
+        
+        # 2. Create guest
+        guest_data = {
+            "title": random.choice(self.guest_titles),
+            "first_name": f"Test{random.randint(1000, 9999)}",
+            "last_name": f"User{random.randint(1000, 9999)}",
+            "phone_number": f"07{random.randint(100000000, 999999999)}",
+            "email": f"test{random.randint(1000, 9999)}@example.com",
+            "address_line1": f"{random.randint(1, 100)} Test Street",
+            "city": "London",
+            "county": "Greater London",
+            "postcode": "SW1A 1AA"
+        }
+        
+        guest_response = self.client.post("/guests/create/", guest_data)
+        
+        # 3. Create reservation
+        reservation_data = {
+            "guest": "1",  # Using first guest for simplicity
+            "room_type": random.choice(self.room_types),
+            "start_of_stay": start_date,
+            "length_of_stay": 2,
+            "number_of_guests": random.randint(1, 2)
+        }
+        
+        self.client.post("/reservations/create/", reservation_data)
+
+class AdminUser(HotelUser):
+    """User performing administrative tasks."""
+    
+    @task(2)
+    def view_reports(self):
+        """View various reports."""
+        self.client.get("/reports/occupancy/")
+        self.client.get("/reports/revenue/")
+    
+    @task(1)
+    def manage_rooms(self):
+        """Perform room management tasks."""
+        self.client.get("/rooms/manage/")
+        
+    @task(1)
+    def view_system_logs(self):
+        """View system logs."""
+        self.client.get("/admin/logs/")

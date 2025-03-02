@@ -29,6 +29,17 @@
 
     <hr> <!-- Horizontal line below the filter -->
 
+    {% if validation_messages %}
+    <div class="alert alert-warning" role="alert">
+        <h5>Please correct the following:</h5>
+        <ul class="mb-0">
+        {% for message in validation_messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
     <table class="table table-bordered table-striped ">
         <thead class="thead-dark">
             <tr>

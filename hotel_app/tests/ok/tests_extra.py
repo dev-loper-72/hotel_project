@@ -5,8 +5,8 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils.timezone import make_aware
 from datetime import datetime, date
-from .models import Guest, RoomType, Room, Reservation
-from .forms import RoomTypeForm
+from hotel_app.models import Guest, RoomType, Room, Reservation
+from hotel_app.forms import RoomTypeForm
 
 #
 # Ideas for extra validation in the model and extra tests 

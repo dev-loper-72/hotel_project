@@ -13,7 +13,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 
-
 from django.conf.global_settings import STATICFILES_DIRS
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -45,7 +44,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'hotel_app.apps.HotelAppConfig',
     'crispy_forms',
-    'crispy_bootstrap5',  
+    'crispy_bootstrap5',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -121,6 +121,36 @@ REST_FRAMEWORK = {
     ],
 }
 
+# Logging
+DJANGO_LOG_LEVEL = "WARNING"  # Change this to "INFO" or "DEBUG" as needed to see more detailed logging
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "level": DJANGO_LOG_LEVEL,
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": DJANGO_LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": DJANGO_LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -141,11 +171,10 @@ STATIC_URL = '/static/'
 # Check and set this during deployment
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-MEDIA_URL = '/media/'
+MEDIA_URL = 'images/'
 
-STATICFILES_DIRS = [
+STATICFILES_DIRS = [ 
     os.path.join(BASE_DIR, 'static'),  # Relative path
-    #os.path.join(BASE_DIR, 'staticfiles'),  # Relative path
 ]
 
 # Default primary key field type
@@ -159,6 +188,4 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 
-#SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-#SESSION_COOKIE_PERSISTENT = False 
-SESSION_COOKIE_AGE = 300 # 1800  # 30 minutes (time in seconds)
+SESSION_COOKIE_AGE = 1800  # 30 minutes (time in seconds)

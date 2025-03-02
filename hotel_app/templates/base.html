@@ -14,7 +14,8 @@
     <!-- Block giving the web page a title -->
     <title> {% block title %} Hotel Management App {% endblock %} </title>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
@@ -48,6 +49,33 @@
             </ul>
         </div>
     </nav>
+    <!-- Messages section -->
+    <div class="container mt-4">
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                <div class="d-flex align-items-center">
+                    {% if message.tags == 'error' %}
+                        <i class="fas fa-exclamation-circle mr-2"></i>
+                    {% elif message.tags == 'warning' %}
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                    {% elif message.tags == 'success' %}
+                        <i class="fas fa-check-circle mr-2"></i>
+                    {% else %}
+                        <i class="fas fa-info-circle mr-2"></i>
+                    {% endif %}
+                    <span>{{ message }}</span>
+                </div>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Block to be used to hold the page's main content -->
     <div class="container">
         {% block content %}{% endblock  %}
@@ -57,6 +85,7 @@
         {% block footer %}{% endblock  %}
     </div>
     <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js" integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8=" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js"></script>
 </body>
 </html>

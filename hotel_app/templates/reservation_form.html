@@ -1,28 +1,58 @@
-<!-- Extend the base layout from the base.html -->
 {% extends "base.html" %}
+{% load static %}
+{% load widget_tweaks %}
 
 {% block title %} Reservation Form {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+{% endblock %}
+
 {% block content %}
-<h2 class="text-center">{{ title }}</h2>
-   
-<form method="POST" class="jumbotron">
-    {% csrf_token %}
+<div class="container mt-4">
+    <h2 class="text-center mb-4">{{ title }}</h2>
 
-    {% for field in form  %}
-        <div class="form-group row">
-            <label for="{{ field.id_for_label }}" class="col-md-3 col-form-label text-left">{{ field.label }}</label>
-            <div class="col-md-9">{{ field }}</div>
-        </div>
-        {% if field.errors %} <!-- If the field has an error, display it underneath -->            
-            <span class="text-danger">{{ field.errors.0 }}</span>  
+    <form method="POST" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
         {% endif %}
-    {% endfor %}
-    
-    <div class="button-group">
-        <button class="btn btn-success btn-sm mt-4" type="submit">{{ save_button_text }}</button>
-        <button type="button" class="btn btn-secondary btn-sm mt-4" onclick="history.back()">Back</button>
-    </div>
-</form>
 
+        {% for field in form %}
+            <div class="form-group row mb-3">
+                <label for="{{ field.id_for_label }}" class="col-md-3 col-form-label text-left">{{ field.label }}</label>
+                <div class="col-md-9">
+                    {% if field.name == 'number_of_guests' %}
+                        {% render_field field class="form-control" type="number" min="1" data-max-guests=room_type.maximum_guests %}
+                    {% elif field.name == 'amount_paid' %}
+                        {% render_field field class="form-control" type="number" min="0" step="0.01" data-max-price=price %}
+                    {% else %}
+                        {% render_field field class="form-control" %}
+                    {% endif %}
+                    {% if field.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in field.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="button-group text-center mt-4">
+            <button class="btn btn-success" type="submit">{{ save_button_text }}</button>
+            <button type="button" class="btn btn-secondary ms-2" onclick="history.back()">Back</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/form-validation.js' %}"></script>
 {% endblock %}

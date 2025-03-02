@@ -20,5 +20,5 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('hotel_app.urls')),
-    path('api-auth/', include('rest_framework.urls')), # enable login/logout via the Django Rest Framework UI
+    path('api-auth/', include('rest_framework.urls')), # enable login/logout via the Django Rest Framework UI    
 ]
