@@ -132,6 +132,46 @@ class SecurityTestCase(TestCase):
             postcode='SW1A 1AA'
         )
 
+class AuthenticationTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123'
+        )
+
+        # Create manager group with permissions
+        self.manager_group = Group.objects.create(name='Manager')
+        view_room_permission = Permission.objects.get(codename='view_room')
+        self.manager_group.permissions.add(view_room_permission)
+
+        self.staff_user = User.objects.create_user(username='staffuser', password='staffpass123')
+        self.staff_user.groups.add(self.manager_group)
+
+    def test_login_required(self):
+        # Test accessing protected views without login
+        guest_response = self.client.get(reverse('guest_list'))
+        self.assertEqual(guest_response.status_code, 302)  # Should redirect to login
+
+        room_response = self.client.get(reverse('room_list'))
+        self.assertEqual(room_response.status_code, 302)  # Should redirect to login
+
+        # Verify redirect URL contains login
+        self.assertTrue(guest_response.url.startswith('/login/'))
+        self.assertTrue(room_response.url.startswith('/login/'))
+
+    def test_staff_permissions(self):
+        # Test with regular user
+        self.client.login(username='testuser', password='testpass123')
+        response = self.client.get(reverse('room_list'))
+        self.assertEqual(response.status_code, 302)  # Should redirect due to lack of manager permission
+
+        # Test with manager user
+        self.client.login(username='staffuser', password='staffpass123')
+        response = self.client.get(reverse('room_list'))
+        self.assertEqual(response.status_code, 200)  # Should have access as manager        
+
 class AuthenticationSecurityTest(SecurityTestCase):
     """Test authentication and authorization security."""
 

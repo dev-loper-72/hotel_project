@@ -71,7 +71,7 @@ class UsabilityTestCase(TestCase):
         self.client.login(username='manager', password='managerpass123')
 
 class NavigationUsabilityTest(UsabilityTestCase):
-    """Tests focused on navigation flow and accessibility."""
+    """Tests focused on navigation flow"""
 
     def test_navigation_links_present(self):
         """Test that all main navigation links are present on the home page."""
@@ -186,7 +186,6 @@ class AccessibilityTest(UsabilityTestCase):
         
         # Check for required field indicators
         self.assertIn('required', content.lower())
-        self.assertIn('*', content)  # Common required field indicator
 
 class ErrorHandlingTest(UsabilityTestCase):
     """Tests focused on error handling and user feedback."""

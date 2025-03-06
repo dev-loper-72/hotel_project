@@ -1,4 +1,4 @@
-import unittest
+#import unittest
 from django.test import TestCase
 from django_filters import FilterSet
 from hotel_app.filters import GuestFilter
@@ -71,5 +71,5 @@ class TestGuestFilter(TestCase):
         self.assertIn('last_name', GuestFilter.Meta.fields)
         self.assertIn('postcode', GuestFilter.Meta.fields)
 
-if __name__ == '__main__':
-    unittest.main()
+#if __name__ == '__main__':
+#    unittest.main()

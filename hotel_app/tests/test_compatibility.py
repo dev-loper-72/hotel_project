@@ -60,8 +60,8 @@ class DatabaseCompatibilityTest(TestCase):
         self.assertEqual(reservation.guest, self.guest)
         self.assertEqual(reservation.room_number, self.room)
 
-    def test_cascade_deletion(self):
-        """Test cascade deletion behavior."""
+    def test_null_on_deletion(self):
+        """Test on deletion behavior."""
         # Create a reservation
         reservation = Reservation.objects.create(
             guest=self.guest,
@@ -75,12 +75,12 @@ class DatabaseCompatibilityTest(TestCase):
             status_code='RE'
         )
         
-        # Delete guest and verify reservation is deleted
+        # Delete guest and verify guest is removed from reservation
         guest_id = self.guest.guest_id
         self.guest.delete()
         self.assertFalse(
             Reservation.objects.filter(guest_id=guest_id).exists(),
-            "Reservation should be deleted when guest is deleted"
+            "Guest should be removed from Reservation"
         )
 
 class FormCompatibilityTest(TestCase):

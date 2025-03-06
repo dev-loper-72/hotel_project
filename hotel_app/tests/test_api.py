@@ -10,7 +10,8 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.contrib.auth.models import User, Group
-from .models import Guest, Reservation, Room, RoomType
+from django.utils.timezone import make_aware
+from hotel_app.models import Guest, Reservation, Room, RoomType
 from datetime import datetime, timedelta
 
 class APITestCase(TestCase):
@@ -59,7 +60,7 @@ class APITestCase(TestCase):
         self.reservation = Reservation.objects.create(
             guest=self.guest,
             room_number=self.room,
-            reservation_date_time=datetime.now(),
+            reservation_date_time=make_aware(datetime.now()),
             price=100.00,
             amount_paid=0.00,
             number_of_guests=1,
@@ -185,6 +186,7 @@ class APITestCase(TestCase):
 
         url = reverse('api_room_type_list_create')
         response = self.client.get(url + '?price=100.00')
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['room_type_code'], 'TST')

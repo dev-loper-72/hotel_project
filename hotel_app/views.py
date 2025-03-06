@@ -1274,6 +1274,14 @@ class APIRoomTypeListCreate(generics.ListCreateAPIView):
     queryset = RoomType.objects.all()
     serializer_class = RoomTypeSerialiser
 
+    ### as an example adding support for a price filter ###
+    def get_queryset(self):
+        queryset = RoomType.objects.all()
+        price = self.request.query_params.get('price', None)
+        if price is not None:
+            queryset = queryset.filter(price=float(price))
+        return queryset    
+
 # Room type - retrieve, update, destroy
 class APIRoomTypeRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
     authentication_classes = [SessionAuthentication, BasicAuthentication]

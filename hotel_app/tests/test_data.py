@@ -250,7 +250,7 @@ class TestDataGenerator(TestCase):
                 postcode='BA1 2QT'
             ),
             Guest.objects.create(
-                title='Lady',
+                title='Dame',
                 first_name='Victoria',
                 last_name='Pembroke',
                 phone_number='07012345678',
